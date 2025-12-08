@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "HSGI",
+    "slug": "hsgi",
+    "version": "1.0.0",
+    "sdkVersion": "54.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#2563eb"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#2563eb"
+      },
+      "package": "com.anonymous.hsgi"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "1ea22e0b-3888-4851-8e6e-46edb9a9e497"
+      }
+    }
+  }
+}
