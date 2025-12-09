@@ -7,12 +7,12 @@ const itemSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    categoryId: {
+    category: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Category",
       required: true,
     },
-    warehouseId: {
+    warehouse: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Warehouse",
       required: true,
@@ -33,7 +33,7 @@ const itemSchema = new mongoose.Schema(
   }
 );
 
-// Create unique compound index on name + warehouseId
-itemSchema.index({ name: 1, warehouseId: 1 }, { unique: true });
+// Create unique compound index on name + warehouse
+itemSchema.index({ name: 1, warehouse: 1 }, { unique: true });
 
 module.exports = mongoose.model("Item", itemSchema);

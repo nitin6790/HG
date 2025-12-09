@@ -44,12 +44,12 @@ router.get("/monthly", async (req, res) => {
     // Get all items for the warehouse(s)
     let itemFilter = {};
     if (warehouseId) {
-      itemFilter.warehouseId = warehouseId;
+      itemFilter.warehouse = warehouseId;
     }
 
     const items = await Item.find(itemFilter)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     // Get transactions for the month
     const transactions = await StockTransaction.find(transactionFilter)
@@ -81,8 +81,8 @@ router.get("/monthly", async (req, res) => {
 
         return {
           itemName: item.name,
-          categoryName: item.categoryId ? item.categoryId.name : "Unknown",
-          warehouseName: item.warehouseId ? item.warehouseId.name : "Unknown",
+          categoryName: item.category ? item.category.name : "Unknown",
+          warehouseName: item.warehouse ? item.warehouse.name : "Unknown",
           openingStock: Math.max(0, openingStock),
           stockIn: stockInThisMonth,
           stockOut: stockOutThisMonth,
@@ -116,12 +116,12 @@ router.get("/low-stock", async (req, res) => {
     };
 
     if (warehouseId) {
-      filter.warehouseId = warehouseId;
+      filter.warehouse = warehouseId;
     }
 
     const lowStockItems = await Item.find(filter)
-      .populate("categoryId")
-      .populate("warehouseId")
+      .populate("category")
+      .populate("warehouse")
       .sort({ quantity: 1 });
 
     res.json(lowStockItems);

@@ -12,10 +12,10 @@ router.get("/", async (req, res) => {
 
     // Add filters if provided
     if (warehouseId) {
-      filter.warehouseId = warehouseId;
+      filter.warehouse = warehouseId;
     }
     if (categoryId) {
-      filter.categoryId = categoryId;
+      filter.category = categoryId;
     }
     if (search) {
       // Case-insensitive partial match on name
@@ -23,8 +23,8 @@ router.get("/", async (req, res) => {
     }
 
     const items = await Item.find(filter)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -34,9 +34,9 @@ router.get("/", async (req, res) => {
 // Get items by warehouse
 router.get("/warehouse/:warehouseId", async (req, res) => {
   try {
-    const items = await Item.find({ warehouseId: req.params.warehouseId })
-      .populate("categoryId")
-      .populate("warehouseId");
+    const items = await Item.find({ warehouse: req.params.warehouseId })
+      .populate("category")
+      .populate("warehouse");
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -47,8 +47,8 @@ router.get("/warehouse/:warehouseId", async (req, res) => {
 router.get("/:id", async (req, res) => {
   try {
     const item = await Item.findById(req.params.id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
@@ -81,7 +81,7 @@ router.post("/", async (req, res) => {
     // 1) Try to find existing item for this name + warehouse
     let item = await Item.findOne({
       name: name.trim(),
-      warehouseId: warehouseId,
+      warehouse: warehouseId,
     });
 
     if (item) {
@@ -93,8 +93,8 @@ router.post("/", async (req, res) => {
       // 3) If not exists → create new item
       item = await Item.create({
         name: name.trim(),
-        categoryId,
-        warehouseId,
+        category: categoryId,
+        warehouse: warehouseId,
         quantity: Number(quantity),
         notes: notes || "",
       });
@@ -112,8 +112,8 @@ router.post("/", async (req, res) => {
 
     // 5) Populate and return
     const populatedItem = await Item.findById(item._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     res.status(201).json(populatedItem);
   } catch (error) {
@@ -137,8 +137,8 @@ router.put("/:id", async (req, res) => {
 
     const updatedItem = await item.save();
     const populatedItem = await Item.findById(updatedItem._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
     res.json(populatedItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -172,7 +172,7 @@ router.post("/:id/stock-in", async (req, res) => {
     await StockTransaction.create({
       type: "IN",
       item: item._id,
-      warehouse: item.warehouseId,
+      warehouse: item.warehouse,
       quantity: Number(quantity),
       date: new Date(date || Date.now()),
       notes: notes || "",
@@ -180,8 +180,8 @@ router.post("/:id/stock-in", async (req, res) => {
 
     // Populate and return
     const populatedItem = await Item.findById(updatedItem._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     res.json(populatedItem);
   } catch (error) {
@@ -223,7 +223,7 @@ router.post("/:id/stock-out", async (req, res) => {
     await StockTransaction.create({
       type: "OUT",
       item: item._id,
-      warehouse: item.warehouseId,
+      warehouse: item.warehouse,
       quantity: Number(quantity),
       date: new Date(date || Date.now()),
       notes: notes || "",
@@ -231,8 +231,8 @@ router.post("/:id/stock-out", async (req, res) => {
 
     // Populate and return
     const populatedItem = await Item.findById(updatedItem._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     res.json(populatedItem);
   } catch (error) {
@@ -282,7 +282,7 @@ router.post("/stock/in", async (req, res) => {
     // Find existing item or create new
     let item = await Item.findOne({
       name: name.trim(),
-      warehouseId: warehouseId,
+      warehouse: warehouseId,
     });
 
     if (item) {
@@ -294,8 +294,8 @@ router.post("/stock/in", async (req, res) => {
       // Item doesn't exist: create new
       item = await Item.create({
         name: name.trim(),
-        categoryId,
-        warehouseId,
+        category: categoryId,
+        warehouse: warehouseId,
         quantity: Number(quantity),
         notes: notes || "",
       });
@@ -313,8 +313,8 @@ router.post("/stock/in", async (req, res) => {
 
     // Populate and return
     const populatedItem = await Item.findById(item._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     res.status(201).json(populatedItem);
   } catch (error) {
@@ -345,7 +345,7 @@ router.post("/stock/out", async (req, res) => {
     // Find item by name + warehouse
     const item = await Item.findOne({
       name: name.trim(),
-      warehouseId: warehouseId,
+      warehouse: warehouseId,
     });
 
     if (!item) {
@@ -375,8 +375,8 @@ router.post("/stock/out", async (req, res) => {
 
     // Populate and return
     const populatedItem = await Item.findById(item._id)
-      .populate("categoryId")
-      .populate("warehouseId");
+      .populate("category")
+      .populate("warehouse");
 
     res.status(200).json(populatedItem);
   } catch (error) {

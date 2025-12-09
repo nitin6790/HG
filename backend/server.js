@@ -70,6 +70,15 @@ const startServer = async () => {
     // Connect to MongoDB
     await connectDB();
 
+    // Data cleanup: Remove or fix items with null warehouse
+    const Item = require("./models/Item");
+    const badItemsCount = await Item.countDocuments({ warehouse: null });
+    if (badItemsCount > 0) {
+      console.log(`⚠️  Found ${badItemsCount} items with warehouse: null. Removing them...`);
+      await Item.deleteMany({ warehouse: null });
+      console.log(`✅ Cleaned up items with warehouse: null`);
+    }
+
     // Start Express server
     app.listen(PORT, HOST, () => {
       console.log(`🚀 Server running on ${HOST}:${PORT}`);
