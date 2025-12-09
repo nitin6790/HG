@@ -35,11 +35,8 @@ export default function WarehousesScreen({ navigation }) {
   };
 
   const renderWarehouseItem = ({ item }) => (
-    <TouchableOpacity
-      onPress={() => navigation.navigate('WarehouseForm', { warehouse: item })}
-      className="bg-white rounded-lg p-4 mb-3 border border-gray-200"
-    >
-      <View className="flex-row justify-between items-start">
+    <View className="bg-white rounded-lg p-4 mb-3 border border-gray-200">
+      <View className="flex-row justify-between items-start mb-3">
         <View className="flex-1 pr-2">
           <Text className="text-lg font-semibold text-gray-900">
             {item.name}
@@ -60,7 +57,19 @@ export default function WarehousesScreen({ navigation }) {
           <Text className="text-red-600 font-semibold text-sm">Delete</Text>
         </TouchableOpacity>
       </View>
-    </TouchableOpacity>
+
+      {/* Action Buttons */}
+      <View className="flex-row gap-2">
+        <TouchableOpacity
+          onPress={() => navigation.navigate('WarehouseForm', { warehouse: item })}
+          className="flex-1 bg-blue-600 rounded-lg py-2"
+        >
+          <Text className="text-white font-semibold text-center text-sm">
+            Edit
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
   return (

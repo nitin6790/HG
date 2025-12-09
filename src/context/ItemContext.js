@@ -90,8 +90,10 @@ export function ItemProvider({ children }) {
     );
 
     let updatedItems;
+    const transactionDate = new Date().toISOString();
+
     if (existingItem) {
-      // Merge quantities with existing item
+      // Merge quantities with existing item and track transaction
       updatedItems = items.map((item) =>
         item.id === existingItem.id
           ? {
@@ -99,12 +101,21 @@ export function ItemProvider({ children }) {
               quantity: item.quantity + Number(quantity),
               categoryId, // Update category if needed
               notes: notes.trim() || item.notes, // Keep old notes if new notes are empty
-              updatedAt: new Date().toISOString(),
+              // Track individual Stock In transactions
+              inDates: [
+                ...(item.inDates || []),
+                transactionDate,
+              ],
+              inQuantities: [
+                ...(item.inQuantities || []),
+                Number(quantity),
+              ],
+              updatedAt: transactionDate,
             }
           : item
       );
     } else {
-      // Create new item
+      // Create new item with transaction tracking
       const newItem = {
         id: generateId(),
         name: trimmedName,
@@ -112,8 +123,11 @@ export function ItemProvider({ children }) {
         categoryId,
         warehouseId,
         notes: notes.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
+        // Initialize transaction tracking
+        inDates: [transactionDate],
+        inQuantities: [Number(quantity)],
+        createdAt: transactionDate,
+        updatedAt: transactionDate,
       };
       updatedItems = [...items, newItem];
     }
@@ -200,17 +214,22 @@ export function ItemProvider({ children }) {
       );
     }
 
+    const transactionDate = new Date().toISOString();
+
     const updatedItems = [...items];
     updatedItems[itemIndex] = {
       ...item,
       quantity: newQuantity,
-      // Track stock out events
-      outQuantity: (item.outQuantity || 0) + Number(quantityToRemove),
+      // Track individual Stock Out transactions
       outDates: [
         ...(item.outDates || []),
-        new Date().toISOString(),
+        transactionDate,
       ],
-      updatedAt: new Date().toISOString(),
+      outQuantities: [
+        ...(item.outQuantities || []),
+        Number(quantityToRemove),
+      ],
+      updatedAt: transactionDate,
     };
 
     await saveItems(updatedItems);

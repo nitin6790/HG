@@ -1,17 +1,22 @@
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { View, Text, TouchableOpacity } from 'react-native';
+import HSGHomeScreen from '../screens/HSGHomeScreen';
 import HomeScreen from '../screens/HomeScreen';
 import WarehousesScreen from '../screens/WarehousesScreen';
 import WarehouseFormScreen from '../screens/WarehouseFormScreen';
 import WarehouseListScreen from '../screens/WarehouseListScreen';
 import WarehouseItemsScreen from '../screens/WarehouseItemsScreen';
+import WarehouseLogsScreen from '../screens/WarehouseLogsScreen';
+import WarehouseLogsSelectionScreen from '../screens/WarehouseLogsSelectionScreen';
 import CategoriesScreen from '../screens/CategoriesScreen';
 import CategoryFormScreen from '../screens/CategoryFormScreen';
 import StockInScreen from '../screens/StockInScreen';
 import StockOutScreen from '../screens/StockOutScreen';
 import ReportScreen from '../screens/ReportScreen';
 import SettingsScreen from '../screens/SettingsScreen';
+import BlocksStackNavigator from '../src/modules/blocks/navigation/BlocksStackNavigator';
+import InventoryHomeScreen from '../screens/InventoryHomeScreen';
 
 const Stack = createStackNavigator();
 
@@ -53,6 +58,18 @@ function SettingsStackNavigator() {
         component={CategoryFormScreen}
         options={{}}
       />
+      <Stack.Screen
+        name="WarehouseLogsSelection"
+        component={WarehouseLogsSelectionScreen}
+        options={{ title: 'Warehouse Logs' }}
+      />
+      <Stack.Screen
+        name="WarehouseLogs"
+        component={WarehouseLogsScreen}
+        options={({ route }) => ({
+          title: route.params?.warehouseName || 'Warehouse Logs',
+        })}
+      />
     </Stack.Navigator>
   );
 }
@@ -72,8 +89,8 @@ export default function StackNavigator() {
     >
       <Stack.Screen
         name="Home"
-        component={HomeScreen}
-        options={{ title: 'Hanuman Groups' }}
+        component={HSGHomeScreen}
+        options={{ title: 'HG' }}
       />
       <Stack.Screen
         name="WarehouseList"
@@ -111,6 +128,16 @@ export default function StackNavigator() {
         name="Reports"
         component={ReportScreen}
         options={{ title: 'Stock Report' }}
+      />
+      <Stack.Screen
+        name="InventoryHome"
+        component={InventoryHomeScreen}
+        options={{ title: 'Inventory' }}
+      />
+      <Stack.Screen
+        name="BlocksModule"
+        component={BlocksStackNavigator}
+        options={{ headerShown: false }}
       />
       <Stack.Screen
         name="Settings"

@@ -72,6 +72,24 @@ export default function SettingsScreen({ navigation }) {
             </View>
           </TouchableOpacity>
 
+          {/* Warehouse Logs Option */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('WarehouseLogsSelection')}
+            className="bg-white rounded-lg p-4 mb-4 border-l-4 border-purple-600"
+          >
+            <View className="flex-row justify-between items-center">
+              <View className="flex-1">
+                <Text className="text-lg font-semibold text-gray-900">
+                  Warehouse Logs
+                </Text>
+                <Text className="text-sm text-gray-500 mt-1">
+                  View Stock In/Out transactions
+                </Text>
+              </View>
+              <Text className="text-gray-400 text-lg">›</Text>
+            </View>
+          </TouchableOpacity>
+
           {/* Clear Items Option */}
           
           {/* <TouchableOpacity
