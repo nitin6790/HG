@@ -54,7 +54,7 @@ export default function CategoriesScreen({ navigation }) {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => handleDelete(item.id, item.name)}
+          onPress={() => handleDelete(item._id, item.name)}
           className="bg-red-50 rounded px-3 py-2"
         >
           <Text className="text-red-600 font-semibold text-sm">Delete</Text>

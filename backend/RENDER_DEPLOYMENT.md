@@ -29,8 +29,10 @@ This guide explains how to deploy the HSGI backend to Render (Free Tier).
 ```bash
 git add .
 git commit -m "Prepare backend for Render deployment"
-git push origin main
+git push -u origin master
 ```
+
+**Note**: Replace `master` with `main` if your repository uses the `main` branch.
 
 ## Step 3: Create Render Web Service
 

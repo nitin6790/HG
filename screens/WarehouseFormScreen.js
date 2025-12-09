@@ -38,7 +38,7 @@ export default function WarehouseFormScreen({ navigation, route }) {
     // Check for duplicate names
     const isDuplicate = warehouses.some(
       (w) =>
-        w.id !== warehouse?.id &&
+        w._id !== warehouse?._id &&
         w.name.toLowerCase() === name.toLowerCase()
     );
 
@@ -59,7 +59,7 @@ export default function WarehouseFormScreen({ navigation, route }) {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        await updateWarehouse(warehouse.id, name, description);
+        await updateWarehouse(warehouse._id, name, description);
       } else {
         await createWarehouse(name, description);
       }

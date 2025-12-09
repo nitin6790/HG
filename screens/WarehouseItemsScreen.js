@@ -16,14 +16,14 @@ export default function WarehouseItemsScreen({ route, navigation }) {
   const { warehouses } = useContext(WarehouseContext);
   const { categories } = useContext(CategoryContext);
 
-  const warehouse = warehouses.find((w) => w.id === warehouseId);
+  const warehouse = warehouses.find((w) => w._id === warehouseId);
   const warehouseItems = useMemo(
     () => getItemsByWarehouse(warehouseId),
     [warehouseId, getItemsByWarehouse]
   );
 
   const getCategoryName = (categoryId) => {
-    const category = categories.find((c) => c.id === categoryId);
+    const category = categories.find((c) => c._id === categoryId);
     return category?.name || 'Unknown Category';
   };
 
@@ -84,7 +84,7 @@ export default function WarehouseItemsScreen({ route, navigation }) {
       <View className="flex-row gap-3 mb-6">
         <TouchableOpacity
           onPress={() => navigation.navigate('StockIn', {
-            warehouseId: warehouse.id,
+            warehouseId: warehouse._id,
             warehouseName: warehouse.name,
           })}
           className="flex-1 bg-green-600 rounded-lg py-3"
@@ -122,7 +122,7 @@ export default function WarehouseItemsScreen({ route, navigation }) {
       <FlatList
         data={warehouseItems}
         renderItem={renderItemRow}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 16 }}

@@ -16,7 +16,7 @@ export default function WarehouseLogsSelectionScreen({ navigation }) {
     <TouchableOpacity
       onPress={() =>
         navigation.navigate('WarehouseLogs', {
-          warehouseId: item.id,
+          warehouseId: item._id,
           warehouseName: item.name,
         })
       }
@@ -59,7 +59,7 @@ export default function WarehouseLogsSelectionScreen({ navigation }) {
             <FlatList
               data={warehouses}
               renderItem={renderWarehouseItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item._id}
               scrollEnabled={false}
             />
           )}

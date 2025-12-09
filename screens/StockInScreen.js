@@ -31,7 +31,7 @@ export default function StockInScreen({ route, navigation }) {
   const [showItemDropdown, setShowItemDropdown] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const selectedCategory = categories.find((c) => c.id === selectedCategoryId);
+  const selectedCategory = categories.find((c) => c._id === selectedCategoryId);
 
   // Validate warehouse is provided
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function StockInScreen({ route, navigation }) {
       );
 
       if (matchedCategory) {
-        setSelectedCategoryId(matchedCategory.id);
+        setSelectedCategoryId(matchedCategory._id);
       }
     },
     [categories]
@@ -127,9 +127,9 @@ export default function StockInScreen({ route, navigation }) {
       <ScrollView className="mt-2 bg-white rounded-lg border border-gray-300 max-h-48">
         {categories.map((item) => (
           <TouchableOpacity
-            key={item.id}
+            key={item._id}
             onPress={() => {
-              setSelectedCategoryId(item.id);
+              setSelectedCategoryId(item._id);
               setShowCategoryDropdown(false);
             }}
             className="px-4 py-3 border-b border-gray-200"

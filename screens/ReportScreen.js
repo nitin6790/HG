@@ -443,7 +443,11 @@ export default function ReportScreen({ route }) {
         >
           <View style={[styles.tableWrapper, { width: TOTAL_WIDTH }]}>
             {renderHeaderRow()}
-            {reportData.map((row, index) => renderDataRow(row, index))}
+            {reportData.map((row, index) => (
+              <View key={`report-row-${index}-${row.itemName}`}>
+                {renderDataRow(row, index)}
+              </View>
+            ))}
           </View>
         </ScrollView>
       ) : (
@@ -507,7 +511,7 @@ export default function ReportScreen({ route }) {
             <ScrollView>
               {yearOptions.map((year) => (
                 <TouchableOpacity
-                  key={year}
+                  key={`year-${year}`}
                   style={[
                     styles.modalOption,
                     selectedYear === year && styles.modalOptionSelected,

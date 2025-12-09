@@ -1,68 +1,30 @@
 import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { itemAPI } from '../api/client';
 
 export const ItemContext = createContext();
-
-// Simple UUID generator
-const generateId = () => {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
 
 export function ItemProvider({ children }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load items from AsyncStorage on mount
+  // Load items from backend on mount
   useEffect(() => {
     loadItems();
   }, []);
 
   const loadItems = async () => {
     try {
-      const storedItems = await AsyncStorage.getItem('items');
-      if (storedItems) {
-        let parsedItems = JSON.parse(storedItems);
-        // Consolidate duplicate items by name within each warehouse
-        parsedItems = consolidateDuplicateItems(parsedItems);
-        // Save consolidated items back to storage
-        await AsyncStorage.setItem('items', JSON.stringify(parsedItems));
-        setItems(parsedItems);
-      }
+      setLoading(true);
+      setError(null);
+      const data = await itemAPI.getAll();
+      setItems(Array.isArray(data) ? data : (data.data || []));
+    } catch (err) {
+      console.error('Failed to load items:', err);
+      setError(err.message);
+      setItems([]);
+    } finally {
       setLoading(false);
-    } catch (error) {
-      console.error('Failed to load items:', error);
-      setLoading(false);
-    }
-  };
-
-  // Consolidate duplicate items with same name in same warehouse
-  const consolidateDuplicateItems = (itemsList) => {
-    const consolidatedMap = new Map();
-
-    itemsList.forEach((item) => {
-      const key = `${item.warehouseId}-${item.name.toLowerCase()}`;
-
-      if (consolidatedMap.has(key)) {
-        // Item already exists, merge quantities
-        const existing = consolidatedMap.get(key);
-        existing.quantity += item.quantity;
-        existing.updatedAt = new Date().toISOString();
-      } else {
-        // First occurrence of this item
-        consolidatedMap.set(key, { ...item });
-      }
-    });
-
-    return Array.from(consolidatedMap.values());
-  };
-
-  const saveItems = async (updatedItems) => {
-    try {
-      await AsyncStorage.setItem('items', JSON.stringify(updatedItems));
-      setItems(updatedItems);
-    } catch (error) {
-      console.error('Failed to save items:', error);
-      throw error;
     }
   };
 
@@ -80,60 +42,40 @@ export function ItemProvider({ children }) {
       throw new Error('Quantity must be greater than 0');
     }
 
-    const trimmedName = name.trim();
-    
-    // Check if item with same name already exists in this warehouse
-    const existingItem = items.find(
-      (item) => 
-        item.name.toLowerCase() === trimmedName.toLowerCase() &&
-        item.warehouseId === warehouseId
-    );
-
-    let updatedItems;
-    const transactionDate = new Date().toISOString();
-
-    if (existingItem) {
-      // Merge quantities with existing item and track transaction
-      updatedItems = items.map((item) =>
-        item.id === existingItem.id
-          ? {
-              ...item,
-              quantity: item.quantity + Number(quantity),
-              categoryId, // Update category if needed
-              notes: notes.trim() || item.notes, // Keep old notes if new notes are empty
-              // Track individual Stock In transactions
-              inDates: [
-                ...(item.inDates || []),
-                transactionDate,
-              ],
-              inQuantities: [
-                ...(item.inQuantities || []),
-                Number(quantity),
-              ],
-              updatedAt: transactionDate,
-            }
-          : item
-      );
-    } else {
-      // Create new item with transaction tracking
-      const newItem = {
-        id: generateId(),
-        name: trimmedName,
-        quantity: Number(quantity),
+    try {
+      const trimmedName = name.trim();
+      const newItem = await itemAPI.create(
+        trimmedName,
         categoryId,
         warehouseId,
-        notes: notes.trim(),
-        // Initialize transaction tracking
-        inDates: [transactionDate],
-        inQuantities: [Number(quantity)],
-        createdAt: transactionDate,
-        updatedAt: transactionDate,
-      };
-      updatedItems = [...items, newItem];
-    }
+        Number(quantity),
+        notes.trim()
+      );
+      
+      // Check if item already exists and merge if needed
+      const existingItem = items.find(
+        (item) =>
+          item.name.toLowerCase() === trimmedName.toLowerCase() &&
+          item.warehouseId === warehouseId
+      );
 
-    await saveItems(updatedItems);
-    return existingItem ? { ...existingItem, quantity: existingItem.quantity + Number(quantity) } : updatedItems[updatedItems.length - 1];
+      if (existingItem) {
+        // Item already exists in our context, update the list
+        const updatedItems = items.map((item) =>
+          item._id === existingItem._id
+            ? { ...item, quantity: item.quantity + Number(quantity) }
+            : item
+        );
+        setItems(updatedItems);
+        return { ...existingItem, quantity: existingItem.quantity + Number(quantity) };
+      } else {
+        // New item, add to list
+        setItems([...items, newItem]);
+        return newItem;
+      }
+    } catch (err) {
+      throw err;
+    }
   };
 
   const updateItem = async (id, name, quantity, categoryId, warehouseId, notes = '') => {
@@ -150,34 +92,30 @@ export function ItemProvider({ children }) {
       throw new Error('Quantity must be greater than 0');
     }
 
-    const itemIndex = items.findIndex((item) => item.id === id);
-    if (itemIndex === -1) {
-      throw new Error('Item not found');
+    try {
+      const updated = await itemAPI.update(
+        id,
+        name.trim(),
+        categoryId,
+        warehouseId,
+        Number(quantity),
+        notes.trim()
+      );
+      
+      setItems(items.map((item) => (item._id === id ? updated : item)));
+      return updated;
+    } catch (err) {
+      throw err;
     }
-
-    const updatedItems = [...items];
-    updatedItems[itemIndex] = {
-      ...updatedItems[itemIndex],
-      name: name.trim(),
-      quantity: Number(quantity),
-      categoryId,
-      warehouseId,
-      notes: notes.trim(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    await saveItems(updatedItems);
-    return updatedItems[itemIndex];
   };
 
   const deleteItem = async (id) => {
-    const itemIndex = items.findIndex((item) => item.id === id);
-    if (itemIndex === -1) {
-      throw new Error('Item not found');
+    try {
+      await itemAPI.delete(id);
+      setItems(items.filter((item) => item._id !== id));
+    } catch (err) {
+      throw err;
     }
-
-    const updatedItems = items.filter((item) => item.id !== id);
-    await saveItems(updatedItems);
   };
 
   const getItemsByWarehouse = (warehouseId) => {
@@ -189,7 +127,7 @@ export function ItemProvider({ children }) {
   };
 
   const getItemById = (id) => {
-    return items.find((item) => item.id === id);
+    return items.find((item) => item._id === id);
   };
 
   const stockOutItem = async (id, quantityToRemove) => {
@@ -200,49 +138,29 @@ export function ItemProvider({ children }) {
       throw new Error('Quantity to stock out must be greater than 0');
     }
 
-    const itemIndex = items.findIndex((item) => item.id === id);
-    if (itemIndex === -1) {
-      throw new Error('Item not found');
+    try {
+      const updated = await itemAPI.stockOut(id, Number(quantityToRemove));
+      setItems(items.map((item) => (item._id === id ? updated : item)));
+      return updated;
+    } catch (err) {
+      throw err;
     }
-
-    const item = items[itemIndex];
-    const newQuantity = item.quantity - Number(quantityToRemove);
-
-    if (newQuantity < 0) {
-      throw new Error(
-        `Cannot stock out ${quantityToRemove}. Only ${item.quantity} available.`
-      );
-    }
-
-    const transactionDate = new Date().toISOString();
-
-    const updatedItems = [...items];
-    updatedItems[itemIndex] = {
-      ...item,
-      quantity: newQuantity,
-      // Track individual Stock Out transactions
-      outDates: [
-        ...(item.outDates || []),
-        transactionDate,
-      ],
-      outQuantities: [
-        ...(item.outQuantities || []),
-        Number(quantityToRemove),
-      ],
-      updatedAt: transactionDate,
-    };
-
-    await saveItems(updatedItems);
-    return updatedItems[itemIndex];
   };
 
-  const clearItems = async () => {
+  const stockInItem = async (id, quantityToAdd, notes = '') => {
+    if (!id) {
+      throw new Error('Item ID is required');
+    }
+    if (!quantityToAdd || quantityToAdd <= 0) {
+      throw new Error('Quantity to stock in must be greater than 0');
+    }
+
     try {
-      await AsyncStorage.setItem('items', JSON.stringify([]));
-      setItems([]);
-    } catch (error) {
-      console.error('Failed to clear items:', error);
-      throw error;
+      const updated = await itemAPI.stockIn(id, Number(quantityToAdd), notes.trim());
+      setItems(items.map((item) => (item._id === id ? updated : item)));
+      return updated;
+    } catch (err) {
+      throw err;
     }
   };
 
@@ -251,6 +169,7 @@ export function ItemProvider({ children }) {
       value={{
         items,
         loading,
+        error,
         createItem,
         updateItem,
         deleteItem,
@@ -258,7 +177,8 @@ export function ItemProvider({ children }) {
         getItemsByCategory,
         getItemById,
         stockOutItem,
-        clearItems,
+        stockInItem,
+        loadItems,
       }}
     >
       {children}

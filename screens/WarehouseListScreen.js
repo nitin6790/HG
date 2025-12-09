@@ -14,7 +14,7 @@ export default function WarehouseListScreen({ navigation }) {
   const renderWarehouseItem = ({ item }) => (
     <TouchableOpacity
       onPress={() =>
-        navigation.navigate('WarehouseItems', { warehouseId: item.id })
+        navigation.navigate('WarehouseItems', { warehouseId: item._id })
       }
       className="bg-white rounded-lg p-4 mb-3 border border-gray-200 active:bg-blue-50"
     >
@@ -57,7 +57,7 @@ export default function WarehouseListScreen({ navigation }) {
       <FlatList
         data={warehouses}
         renderItem={renderWarehouseItem}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         ListHeaderComponent={
           <View className="px-6 py-6">
             <Text className="text-2xl font-bold text-gray-900 mb-6">

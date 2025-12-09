@@ -1,15 +1,14 @@
 import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { warehouseAPI } from '../api/client';
 
 export const WarehouseContext = createContext();
-
-const WAREHOUSES_KEY = '@hsgi_warehouses';
 
 export function WarehouseProvider({ children }) {
   const [warehouses, setWarehouses] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load warehouses from AsyncStorage on mount
+  // Load warehouses from backend on mount
   useEffect(() => {
     loadWarehouses();
   }, []);
@@ -17,26 +16,20 @@ export function WarehouseProvider({ children }) {
   const loadWarehouses = async () => {
     try {
       setIsLoading(true);
-      const stored = await AsyncStorage.getItem(WAREHOUSES_KEY);
-      if (stored) {
-        setWarehouses(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Error loading warehouses:', error);
+      setError(null);
+      const data = await warehouseAPI.getAll();
+      setWarehouses(Array.isArray(data) ? data : (data.data || []));
+    } catch (err) {
+      console.error('Error loading warehouses:', err);
+      setError(err.message);
+      // Fall back to empty array if API fails
+      setWarehouses([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const saveToStorage = async (data) => {
-    try {
-      await AsyncStorage.setItem(WAREHOUSES_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving warehouses:', error);
-    }
-  };
-
-  const createWarehouse = async (name, description = '') => {
+  const createWarehouse = async (name, location = '') => {
     try {
       const trimmedName = name.trim();
       
@@ -53,24 +46,16 @@ export function WarehouseProvider({ children }) {
         throw new Error('A warehouse with this name already exists');
       }
 
-      const newWarehouse = {
-        id: Date.now().toString(),
-        name: trimmedName,
-        description: description.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
+      const newWarehouse = await warehouseAPI.create(trimmedName, location.trim());
       const updated = [...warehouses, newWarehouse];
       setWarehouses(updated);
-      await saveToStorage(updated);
       return newWarehouse;
     } catch (error) {
       throw error;
     }
   };
 
-  const updateWarehouse = async (id, name, description = '') => {
+  const updateWarehouse = async (id, name, location = '') => {
     try {
       const trimmedName = name.trim();
 
@@ -82,26 +67,16 @@ export function WarehouseProvider({ children }) {
       // Check for duplicate names excluding the current warehouse (case-insensitive)
       const isDuplicate = warehouses.some(
         (w) =>
-          w.id !== id &&
+          w._id !== id &&
           w.name.toLowerCase() === trimmedName.toLowerCase()
       );
       if (isDuplicate) {
         throw new Error('A warehouse with this name already exists');
       }
 
-      const updated = warehouses.map((w) =>
-        w.id === id
-          ? {
-              ...w,
-              name: trimmedName,
-              description: description.trim(),
-              updatedAt: new Date().toISOString(),
-            }
-          : w
-      );
-
-      setWarehouses(updated);
-      await saveToStorage(updated);
+      const updated = await warehouseAPI.update(id, trimmedName, location.trim());
+      setWarehouses(warehouses.map((w) => (w._id === id ? updated : w)));
+      return updated;
     } catch (error) {
       throw error;
     }
@@ -109,9 +84,8 @@ export function WarehouseProvider({ children }) {
 
   const deleteWarehouse = async (id) => {
     try {
-      const updated = warehouses.filter((w) => w.id !== id);
-      setWarehouses(updated);
-      await saveToStorage(updated);
+      await warehouseAPI.delete(id);
+      setWarehouses(warehouses.filter((w) => w._id !== id));
     } catch (error) {
       console.error('Error deleting warehouse:', error);
       throw error;
@@ -121,6 +95,7 @@ export function WarehouseProvider({ children }) {
   const value = {
     warehouses,
     isLoading,
+    error,
     loadWarehouses,
     createWarehouse,
     updateWarehouse,

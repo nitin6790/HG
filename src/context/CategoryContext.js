@@ -1,9 +1,7 @@
 import React, { createContext, useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { categoryAPI } from '../api/client';
 
 export const CategoryContext = createContext();
-
-const CATEGORIES_KEY = '@hsgi_categories';
 
 const DEFAULT_CATEGORIES = [
   'LAPOTHARA',
@@ -14,8 +12,9 @@ const DEFAULT_CATEGORIES = [
 export function CategoryProvider({ children }) {
   const [categories, setCategories] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load categories from AsyncStorage on mount
+  // Load categories from backend on mount
   useEffect(() => {
     loadCategories();
   }, []);
@@ -23,34 +22,36 @@ export function CategoryProvider({ children }) {
   const loadCategories = async () => {
     try {
       setIsLoading(true);
-      const stored = await AsyncStorage.getItem(CATEGORIES_KEY);
+      setError(null);
+      const data = await categoryAPI.getAll();
+      const fetchedCategories = Array.isArray(data) ? data : (data.data || []);
       
-      if (stored) {
-        setCategories(JSON.parse(stored));
+      // If no categories exist on backend, create defaults
+      if (fetchedCategories.length === 0) {
+        await initializeDefaultCategories();
       } else {
-        // Initialize with default categories
-        const defaultCategories = DEFAULT_CATEGORIES.map((name, index) => ({
-          id: (index + 1).toString(),
-          name,
-          description: '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        }));
-        setCategories(defaultCategories);
-        await AsyncStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
+        setCategories(fetchedCategories);
       }
-    } catch (error) {
-      console.error('Error loading categories:', error);
+    } catch (err) {
+      console.error('Error loading categories:', err);
+      setError(err.message);
+      // Fall back to empty array if API fails
+      setCategories([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const saveToStorage = async (data) => {
+  const initializeDefaultCategories = async () => {
     try {
-      await AsyncStorage.setItem(CATEGORIES_KEY, JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving categories:', error);
+      const created = [];
+      for (const name of DEFAULT_CATEGORIES) {
+        const category = await categoryAPI.create(name, '');
+        created.push(category);
+      }
+      setCategories(created);
+    } catch (err) {
+      console.error('Error initializing default categories:', err);
     }
   };
 
@@ -71,17 +72,9 @@ export function CategoryProvider({ children }) {
         throw new Error('A category with this name already exists');
       }
 
-      const newCategory = {
-        id: Date.now().toString(),
-        name: trimmedName,
-        description: description.trim(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
+      const newCategory = await categoryAPI.create(trimmedName, description.trim());
       const updated = [...categories, newCategory];
       setCategories(updated);
-      await saveToStorage(updated);
       return newCategory;
     } catch (error) {
       throw error;
@@ -100,26 +93,16 @@ export function CategoryProvider({ children }) {
       // Check for duplicate names excluding the current category (case-insensitive)
       const isDuplicate = categories.some(
         (c) =>
-          c.id !== id &&
+          c._id !== id &&
           c.name.toLowerCase() === trimmedName.toLowerCase()
       );
       if (isDuplicate) {
         throw new Error('A category with this name already exists');
       }
 
-      const updated = categories.map((c) =>
-        c.id === id
-          ? {
-              ...c,
-              name: trimmedName,
-              description: description.trim(),
-              updatedAt: new Date().toISOString(),
-            }
-          : c
-      );
-
-      setCategories(updated);
-      await saveToStorage(updated);
+      const updated = await categoryAPI.update(id, trimmedName, description.trim());
+      setCategories(categories.map((c) => (c._id === id ? updated : c)));
+      return updated;
     } catch (error) {
       throw error;
     }
@@ -127,9 +110,8 @@ export function CategoryProvider({ children }) {
 
   const deleteCategory = async (id) => {
     try {
-      const updated = categories.filter((c) => c.id !== id);
-      setCategories(updated);
-      await saveToStorage(updated);
+      await categoryAPI.delete(id);
+      setCategories(categories.filter((c) => c._id !== id));
     } catch (error) {
       console.error('Error deleting category:', error);
       throw error;
@@ -139,6 +121,7 @@ export function CategoryProvider({ children }) {
   const value = {
     categories,
     isLoading,
+    error,
     loadCategories,
     createCategory,
     updateCategory,

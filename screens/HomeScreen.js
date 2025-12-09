@@ -87,7 +87,7 @@ export default function HomeScreen({ navigation }) {
               <View className="gap-2">
                 {lowStockItems.map((item) => (
                   <Text
-                    key={item.id}
+                    key={item._id}
                     style={{ color: '#B45309' }}
                     className="text-base"
                   >

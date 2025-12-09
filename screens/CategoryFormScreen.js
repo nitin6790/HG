@@ -38,7 +38,7 @@ export default function CategoryFormScreen({ navigation, route }) {
     // Check for duplicate names
     const isDuplicate = categories.some(
       (c) =>
-        c.id !== category?.id &&
+        c._id !== category?._id &&
         c.name.toLowerCase() === name.toLowerCase()
     );
 
@@ -59,7 +59,7 @@ export default function CategoryFormScreen({ navigation, route }) {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        await updateCategory(category.id, name, description);
+        await updateCategory(category._id, name, description);
       } else {
         await createCategory(name, description);
       }

@@ -64,7 +64,7 @@ export default function StockOutScreen({ navigation }) {
 
     setIsSubmitting(true);
     try {
-      await stockOutItem(selectedItem.id, Number(stockOutQuantity));
+      await stockOutItem(selectedItem._id, Number(stockOutQuantity));
       Alert.alert(
         'Success',
         `Stocked out ${stockOutQuantity} units of ${selectedItem.name}`
@@ -151,7 +151,7 @@ export default function StockOutScreen({ navigation }) {
                   ) : (
                     <View>
                       {uniqueItemNames.map((item) => (
-                        <View key={item.id}>
+                        <View key={item._id}>
                           {renderDropdownItem(item)}
                         </View>
                       ))}

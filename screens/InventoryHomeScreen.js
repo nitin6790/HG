@@ -83,7 +83,7 @@ export default function InventoryHomeScreen({ navigation }) {
                   );
                   return (
                     <View
-                      key={item.id}
+                      key={item._id}
                       className="bg-red-50 p-3 rounded-lg border border-red-200"
                     >
                       <View className="flex-row justify-between items-start">
