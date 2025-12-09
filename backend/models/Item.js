@@ -46,4 +46,7 @@ const itemSchema = new mongoose.Schema(
   }
 );
 
+// Create unique compound index on name + warehouseId
+itemSchema.index({ name: 1, warehouseId: 1 }, { unique: true });
+
 module.exports = mongoose.model("Item", itemSchema);

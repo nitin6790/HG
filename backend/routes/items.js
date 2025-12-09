@@ -43,6 +43,13 @@ router.get("/:id", async (req, res) => {
 
 // Create item
 router.post("/", async (req, res) => {
+  // Validate required fields
+  if (!req.body.name || !req.body.categoryId || !req.body.warehouseId) {
+    return res.status(400).json({ 
+      message: "name, categoryId, and warehouseId are required" 
+    });
+  }
+
   const item = new Item({
     name: req.body.name,
     categoryId: req.body.categoryId,
@@ -61,6 +68,12 @@ router.post("/", async (req, res) => {
       .populate("warehouseId");
     res.status(201).json(populatedItem);
   } catch (error) {
+    // Handle duplicate key error
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        message: "An item with this name already exists in the selected warehouse" 
+      });
+    }
     res.status(400).json({ message: error.message });
   }
 });

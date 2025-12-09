@@ -16,7 +16,7 @@ export default function InventoryHomeScreen({ navigation }) {
   // Get low stock items
   const lowStockItems = useMemo(() => {
     return items.filter((item) => {
-      const category = categories.find((cat) => cat.id === item.categoryId);
+      const category = categories.find((cat) => cat._id === item.categoryId);
       const categoryName = category?.name || '';
       const threshold =
         categoryName === 'Single Segment' || categoryName === 'Multi Segment'
@@ -79,7 +79,7 @@ export default function InventoryHomeScreen({ navigation }) {
               <View className="gap-2">
                 {lowStockItems.slice(0, 5).map((item) => {
                   const category = categories.find(
-                    (cat) => cat.id === item.categoryId
+                    (cat) => cat._id === item.categoryId
                   );
                   return (
                     <View

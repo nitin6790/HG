@@ -11,7 +11,7 @@ export default function HomeScreen({ navigation }) {
 
   // Get category name by ID
   const getCategoryName = (categoryId) => {
-    const cat = categories.find((c) => c.id === categoryId);
+    const cat = categories.find((c) => c._id === categoryId);
     return cat ? cat.name : '';
   };
 

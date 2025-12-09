@@ -257,7 +257,7 @@ export default function ReportScreen({ route }) {
   const displayWarehouseName = useMemo(() => {
     if (warehouseName) return warehouseName;
     if (warehouseId) {
-      const wh = warehouses.find((w) => w.id === warehouseId);
+      const wh = warehouses.find((w) => w._id === warehouseId);
       return wh?.name || 'Unknown Warehouse';
     }
     return 'All Warehouses';
