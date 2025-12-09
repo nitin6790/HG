@@ -100,9 +100,16 @@ export const categoryAPI = {
 
 // ==================== ITEMS ====================
 export const itemAPI = {
-  // Get all items
-  getAll: async () => {
-    const response = await fetch(`${API_BASE_URL}/items`);
+  // Get all items with optional filters
+  // Params: warehouseId, categoryId, search
+  getAll: async (warehouseId, categoryId, search) => {
+    const params = new URLSearchParams();
+    if (warehouseId) params.append('warehouseId', warehouseId);
+    if (categoryId) params.append('categoryId', categoryId);
+    if (search) params.append('search', search);
+    
+    const url = `${API_BASE_URL}/items${params.toString() ? '?' + params.toString() : ''}`;
+    const response = await fetch(url);
     return handleResponse(response);
   },
 
@@ -188,6 +195,34 @@ export const transactionAPI = {
   },
 
   // Note: Transactions are created via stock-in and stock-out endpoints
+};
+
+// ==================== REPORTS ====================
+export const reportAPI = {
+  // Get monthly report
+  // Params: year (required), month (required), warehouseId (optional)
+  getMonthlyReport: async (year, month, warehouseId) => {
+    const params = new URLSearchParams({
+      year: String(year),
+      month: String(month),
+    });
+    if (warehouseId) params.append('warehouseId', warehouseId);
+
+    const response = await fetch(`${API_BASE_URL}/reports/monthly?${params.toString()}`);
+    return handleResponse(response);
+  },
+
+  // Get low-stock items
+  // Params: warehouseId (optional), threshold (optional, default 5)
+  getLowStock: async (warehouseId, threshold = 5) => {
+    const params = new URLSearchParams({
+      threshold: String(threshold),
+    });
+    if (warehouseId) params.append('warehouseId', warehouseId);
+
+    const response = await fetch(`${API_BASE_URL}/reports/low-stock?${params.toString()}`);
+    return handleResponse(response);
+  },
 };
 
 // ==================== HEALTH CHECK ====================

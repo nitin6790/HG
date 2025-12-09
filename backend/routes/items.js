@@ -3,10 +3,26 @@ const router = express.Router();
 const Item = require("../models/Item");
 const StockTransaction = require("../models/StockTransaction");
 
-// Get all items
+// Get all items with optional filters
+// GET /api/items?warehouseId=X&categoryId=Y&search=Z
 router.get("/", async (req, res) => {
   try {
-    const items = await Item.find()
+    const { warehouseId, categoryId, search } = req.query;
+    let filter = {};
+
+    // Add filters if provided
+    if (warehouseId) {
+      filter.warehouseId = warehouseId;
+    }
+    if (categoryId) {
+      filter.categoryId = categoryId;
+    }
+    if (search) {
+      // Case-insensitive partial match on name
+      filter.name = { $regex: search, $options: "i" };
+    }
+
+    const items = await Item.find(filter)
       .populate("categoryId")
       .populate("warehouseId");
     res.json(items);
@@ -80,10 +96,6 @@ router.post("/", async (req, res) => {
         categoryId,
         warehouseId,
         quantity: Number(quantity),
-        inDates: [new Date()],
-        inQuantities: [Number(quantity)],
-        outDates: [],
-        outQuantities: [],
         notes: notes || "",
       });
     }
@@ -153,8 +165,6 @@ router.post("/:id/stock-in", async (req, res) => {
 
     // Increment quantity
     item.quantity += Number(quantity);
-    item.inDates.push(new Date(date || Date.now()));
-    item.inQuantities.push(Number(quantity));
 
     const updatedItem = await item.save();
 
@@ -206,8 +216,6 @@ router.post("/:id/stock-out", async (req, res) => {
 
     // Decrement quantity
     item.quantity -= Number(quantity);
-    item.outDates.push(new Date(date || Date.now()));
-    item.outQuantities.push(Number(quantity));
 
     const updatedItem = await item.save();
 
@@ -247,6 +255,133 @@ router.delete("/:id", async (req, res) => {
     res.json({ message: "Item deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// ==================== STOCK IN/OUT ENDPOINTS ====================
+
+// Stock In - Dedicated endpoint
+// POST /api/stock/in
+// Body: { name, categoryId, warehouseId, quantity, notes }
+router.post("/stock/in", async (req, res) => {
+  if (!req.body.name || !req.body.categoryId || !req.body.warehouseId) {
+    return res.status(400).json({ 
+      message: "name, categoryId, and warehouseId are required" 
+    });
+  }
+
+  if (!req.body.quantity || req.body.quantity <= 0) {
+    return res.status(400).json({ 
+      message: "quantity must be greater than 0" 
+    });
+  }
+
+  try {
+    const { name, categoryId, warehouseId, quantity, notes } = req.body;
+
+    // Find existing item or create new
+    let item = await Item.findOne({
+      name: name.trim(),
+      warehouseId: warehouseId,
+    });
+
+    if (item) {
+      // Item exists: increment quantity
+      item.quantity += Number(quantity);
+      if (notes) item.notes = notes;
+      await item.save();
+    } else {
+      // Item doesn't exist: create new
+      item = await Item.create({
+        name: name.trim(),
+        categoryId,
+        warehouseId,
+        quantity: Number(quantity),
+        notes: notes || "",
+      });
+    }
+
+    // Create stock transaction record
+    await StockTransaction.create({
+      type: "IN",
+      item: item._id,
+      warehouse: warehouseId,
+      quantity: Number(quantity),
+      date: new Date(),
+      notes: notes || "",
+    });
+
+    // Populate and return
+    const populatedItem = await Item.findById(item._id)
+      .populate("categoryId")
+      .populate("warehouseId");
+
+    res.status(201).json(populatedItem);
+  } catch (error) {
+    console.error("Stock In error:", error);
+    res.status(400).json({ message: error.message || "Failed to stock in item" });
+  }
+});
+
+// Stock Out - Dedicated endpoint
+// POST /api/stock/out
+// Body: { name, warehouseId, quantity, notes }
+router.post("/stock/out", async (req, res) => {
+  if (!req.body.name || !req.body.warehouseId) {
+    return res.status(400).json({ 
+      message: "name and warehouseId are required" 
+    });
+  }
+
+  if (!req.body.quantity || req.body.quantity <= 0) {
+    return res.status(400).json({ 
+      message: "quantity must be greater than 0" 
+    });
+  }
+
+  try {
+    const { name, warehouseId, quantity, notes } = req.body;
+
+    // Find item by name + warehouse
+    const item = await Item.findOne({
+      name: name.trim(),
+      warehouseId: warehouseId,
+    });
+
+    if (!item) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    // Check if sufficient quantity
+    if (item.quantity < quantity) {
+      return res.status(400).json({ 
+        message: `Insufficient quantity in stock. Available: ${item.quantity}, Requested: ${quantity}` 
+      });
+    }
+
+    // Decrement quantity
+    item.quantity -= Number(quantity);
+    await item.save();
+
+    // Create stock transaction record
+    await StockTransaction.create({
+      type: "OUT",
+      item: item._id,
+      warehouse: warehouseId,
+      quantity: Number(quantity),
+      date: new Date(),
+      notes: notes || "",
+    });
+
+    // Populate and return
+    const populatedItem = await Item.findById(item._id)
+      .populate("categoryId")
+      .populate("warehouseId");
+
+    res.status(200).json(populatedItem);
+  } catch (error) {
+    console.error("Stock Out error:", error);
+    res.status(400).json({ message: error.message || "Failed to stock out item" });
   }
 });
 

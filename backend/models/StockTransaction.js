@@ -35,4 +35,8 @@ const stockTransactionSchema = new mongoose.Schema(
   }
 );
 
+// Create indexes for fast report queries
+stockTransactionSchema.index({ warehouse: 1, date: 1 });
+stockTransactionSchema.index({ item: 1, date: 1 });
+
 module.exports = mongoose.model("StockTransaction", stockTransactionSchema);

@@ -23,26 +23,10 @@ const itemSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    inDates: [
-      {
-        type: Date,
-      },
-    ],
-    inQuantities: [
-      {
-        type: Number,
-      },
-    ],
-    outDates: [
-      {
-        type: Date,
-      },
-    ],
-    outQuantities: [
-      {
-        type: Number,
-      },
-    ],
+    notes: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

@@ -31,6 +31,7 @@ app.get("/", (req, res) => {
 app.use("/api/warehouses", require("./routes/warehouses"));
 app.use("/api/categories", require("./routes/categories"));
 app.use("/api/items", require("./routes/items"));
+app.use("/api/reports", require("./routes/reports"));
 
 // Database connection test route
 app.get("/test-db", (req, res) => {
