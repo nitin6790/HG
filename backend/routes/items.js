@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const Item = require("../models/Item");
+const StockTransaction = require("../models/StockTransaction");
 
 // Get all items
 router.get("/", async (req, res) => {
@@ -41,7 +42,9 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-// Create item
+// Create or Stock In item (upsert logic)
+// POST /api/items
+// Body: { name, categoryId, warehouseId, quantity, notes }
 router.post("/", async (req, res) => {
   // Validate required fields
   if (!req.body.name || !req.body.categoryId || !req.body.warehouseId) {
@@ -50,32 +53,61 @@ router.post("/", async (req, res) => {
     });
   }
 
-  const item = new Item({
-    name: req.body.name,
-    categoryId: req.body.categoryId,
-    warehouseId: req.body.warehouseId,
-    quantity: req.body.quantity || 0,
-    inDates: req.body.inDates || [],
-    inQuantities: req.body.inQuantities || [],
-    outDates: req.body.outDates || [],
-    outQuantities: req.body.outQuantities || [],
-  });
+  if (!req.body.quantity || req.body.quantity <= 0) {
+    return res.status(400).json({ 
+      message: "quantity must be greater than 0" 
+    });
+  }
 
   try {
-    const newItem = await item.save();
-    // Fetch and populate the saved item
-    const populatedItem = await Item.findById(newItem._id)
-      .populate("categoryId")
-      .populate("warehouseId");
-    res.status(201).json(populatedItem);
-  } catch (error) {
-    // Handle duplicate key error
-    if (error.code === 11000) {
-      return res.status(409).json({ 
-        message: "An item with this name already exists in the selected warehouse" 
+    const { name, categoryId, warehouseId, quantity, notes } = req.body;
+
+    // 1) Try to find existing item for this name + warehouse
+    let item = await Item.findOne({
+      name: name.trim(),
+      warehouseId: warehouseId,
+    });
+
+    if (item) {
+      // 2) If exists → increment quantity (stock in)
+      item.quantity += Number(quantity);
+      if (notes) item.notes = notes;
+      await item.save();
+    } else {
+      // 3) If not exists → create new item
+      item = await Item.create({
+        name: name.trim(),
+        categoryId,
+        warehouseId,
+        quantity: Number(quantity),
+        inDates: [new Date()],
+        inQuantities: [Number(quantity)],
+        outDates: [],
+        outQuantities: [],
+        notes: notes || "",
       });
     }
-    res.status(400).json({ message: error.message });
+
+    // 4) Create stock transaction record for auditing
+    await StockTransaction.create({
+      type: "IN",
+      item: item._id,
+      warehouse: warehouseId,
+      quantity: Number(quantity),
+      date: new Date(),
+      notes: notes || "",
+    });
+
+    // 5) Populate and return
+    const populatedItem = await Item.findById(item._id)
+      .populate("categoryId")
+      .populate("warehouseId");
+
+    res.status(201).json(populatedItem);
+  } catch (error) {
+    console.error("Create/Stock In error:", error);
+    // Handle any other errors
+    res.status(400).json({ message: error.message || "Failed to create/stock in item" });
   }
 });
 
@@ -89,13 +121,10 @@ router.put("/:id", async (req, res) => {
 
     if (req.body.name) item.name = req.body.name;
     if (req.body.quantity !== undefined) item.quantity = req.body.quantity;
-    if (req.body.inDates) item.inDates = req.body.inDates;
-    if (req.body.inQuantities) item.inQuantities = req.body.inQuantities;
-    if (req.body.outDates) item.outDates = req.body.outDates;
-    if (req.body.outQuantities) item.outQuantities = req.body.outQuantities;
+    if (req.body.notes) item.notes = req.body.notes;
 
     const updatedItem = await item.save();
-    const populatedItem = await updatedItem
+    const populatedItem = await Item.findById(updatedItem._id)
       .populate("categoryId")
       .populate("warehouseId");
     res.json(populatedItem);
@@ -104,7 +133,9 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// Stock in
+// Stock in (explicit endpoint for consistency)
+// POST /api/items/:id/stock-in
+// Body: { quantity, notes, date }
 router.post("/:id/stock-in", async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -112,23 +143,46 @@ router.post("/:id/stock-in", async (req, res) => {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    const { quantity, date } = req.body;
-    item.quantity += quantity;
+    const { quantity, notes, date } = req.body;
+    
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ 
+        message: "quantity must be greater than 0" 
+      });
+    }
+
+    // Increment quantity
+    item.quantity += Number(quantity);
     item.inDates.push(new Date(date || Date.now()));
-    item.inQuantities.push(quantity);
+    item.inQuantities.push(Number(quantity));
 
     const updatedItem = await item.save();
-    // Fetch and populate the updated item
+
+    // Create stock transaction record
+    await StockTransaction.create({
+      type: "IN",
+      item: item._id,
+      warehouse: item.warehouseId,
+      quantity: Number(quantity),
+      date: new Date(date || Date.now()),
+      notes: notes || "",
+    });
+
+    // Populate and return
     const populatedItem = await Item.findById(updatedItem._id)
       .populate("categoryId")
       .populate("warehouseId");
+
     res.json(populatedItem);
   } catch (error) {
+    console.error("Stock In error:", error);
     res.status(400).json({ message: error.message });
   }
 });
 
 // Stock out
+// POST /api/items/:id/stock-out
+// Body: { quantity, notes, date }
 router.post("/:id/stock-out", async (req, res) => {
   try {
     const item = await Item.findById(req.params.id);
@@ -136,24 +190,45 @@ router.post("/:id/stock-out", async (req, res) => {
       return res.status(404).json({ message: "Item not found" });
     }
 
-    const { quantity, date } = req.body;
-    if (item.quantity < quantity) {
-      return res
-        .status(400)
-        .json({ message: "Insufficient quantity in stock" });
+    const { quantity, notes, date } = req.body;
+
+    if (!quantity || quantity <= 0) {
+      return res.status(400).json({ 
+        message: "quantity must be greater than 0" 
+      });
     }
 
-    item.quantity -= quantity;
+    if (item.quantity < quantity) {
+      return res.status(400).json({ 
+        message: `Insufficient quantity in stock. Available: ${item.quantity}, Requested: ${quantity}` 
+      });
+    }
+
+    // Decrement quantity
+    item.quantity -= Number(quantity);
     item.outDates.push(new Date(date || Date.now()));
-    item.outQuantities.push(quantity);
+    item.outQuantities.push(Number(quantity));
 
     const updatedItem = await item.save();
-    // Fetch and populate the updated item
+
+    // Create stock transaction record
+    await StockTransaction.create({
+      type: "OUT",
+      item: item._id,
+      warehouse: item.warehouseId,
+      quantity: Number(quantity),
+      date: new Date(date || Date.now()),
+      notes: notes || "",
+    });
+
+    // Populate and return
     const populatedItem = await Item.findById(updatedItem._id)
       .populate("categoryId")
       .populate("warehouseId");
+
     res.json(populatedItem);
   } catch (error) {
+    console.error("Stock Out error:", error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -165,6 +240,10 @@ router.delete("/:id", async (req, res) => {
     if (!item) {
       return res.status(404).json({ message: "Item not found" });
     }
+    
+    // Also delete related transactions
+    await StockTransaction.deleteMany({ item: req.params.id });
+    
     res.json({ message: "Item deleted" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -172,3 +251,4 @@ router.delete("/:id", async (req, res) => {
 });
 
 module.exports = router;
+
