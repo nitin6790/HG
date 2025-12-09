@@ -223,6 +223,15 @@ export const reportAPI = {
     const response = await fetch(`${API_BASE_URL}/reports/low-stock?${params.toString()}`);
     return handleResponse(response);
   },
+
+  // Get warehouse logs (transactions for a warehouse)
+  getWarehouseLogs: async (warehouseId) => {
+    if (!warehouseId) {
+      throw new Error('warehouseId is required');
+    }
+    const response = await fetch(`${API_BASE_URL}/reports/logs/warehouse/${warehouseId}`);
+    return handleResponse(response);
+  },
 };
 
 // ==================== HEALTH CHECK ====================

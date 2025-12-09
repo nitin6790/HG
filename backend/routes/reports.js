@@ -131,4 +131,54 @@ router.get("/low-stock", async (req, res) => {
   }
 });
 
+// Get warehouse logs (stock in/out transactions for a warehouse)
+// GET /api/reports/logs/warehouse/:warehouseId
+// Returns: [{ date, type, quantity, itemName, notes, warehouse }]
+router.get("/logs/warehouse/:warehouseId", async (req, res) => {
+  try {
+    const { warehouseId } = req.params;
+
+    if (!warehouseId) {
+      return res.status(400).json({ message: "warehouseId is required" });
+    }
+
+    // Get all items in the warehouse
+    const items = await Item.find({ warehouse: warehouseId }).select("_id");
+    const itemIds = items.map((item) => item._id);
+
+    if (itemIds.length === 0) {
+      return res.json([]);
+    }
+
+    // Get all transactions for items in this warehouse
+    const transactions = await StockTransaction.find({
+      item: { $in: itemIds }
+    })
+      .populate({
+        path: "item",
+        select: "name",
+        populate: { path: "category", select: "name" }
+      })
+      .populate("warehouse", "name")
+      .sort({ date: -1 });
+
+    // Format the response
+    const logs = transactions.map((transaction) => ({
+      _id: transaction._id,
+      date: transaction.date,
+      type: transaction.type, // "stock-in" or "stock-out"
+      quantity: transaction.quantity,
+      itemName: transaction.item?.name || "Unknown Item",
+      itemCategory: transaction.item?.category?.name || "Unknown Category",
+      notes: transaction.notes || "",
+      warehouse: transaction.warehouse?.name || "Unknown Warehouse",
+    }));
+
+    res.json(logs);
+  } catch (error) {
+    console.error("Warehouse logs error:", error);
+    res.status(500).json({ message: error.message || "Failed to get warehouse logs" });
+  }
+});
+
 module.exports = router;

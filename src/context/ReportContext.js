@@ -6,6 +6,7 @@ export const ReportContext = createContext();
 export function ReportProvider({ children }) {
   const [monthlyReportData, setMonthlyReportData] = useState([]);
   const [lowStockData, setLowStockData] = useState([]);
+  const [warehouseLogsData, setWarehouseLogsData] = useState([]);
   const [reportLoading, setReportLoading] = useState(false);
   const [reportError, setReportError] = useState(null);
 
@@ -45,6 +46,24 @@ export function ReportProvider({ children }) {
     }
   };
 
+  // Load warehouse logs
+  const loadWarehouseLogs = async (warehouseId) => {
+    try {
+      setReportLoading(true);
+      setReportError(null);
+      const data = await reportAPI.getWarehouseLogs(warehouseId);
+      setWarehouseLogsData(Array.isArray(data) ? data : (data.data || []));
+      return data;
+    } catch (err) {
+      console.error('Error loading warehouse logs:', err);
+      setReportError(err.message);
+      setWarehouseLogsData([]);
+      throw err;
+    } finally {
+      setReportLoading(false);
+    }
+  };
+
   // Clear report data
   const clearReportData = () => {
     setMonthlyReportData([]);
@@ -56,12 +75,14 @@ export function ReportProvider({ children }) {
     // Data
     monthlyReportData,
     lowStockData,
+    warehouseLogsData,
     reportLoading,
     reportError,
 
     // Methods
     loadMonthlyReport,
     loadLowStockItems,
+    loadWarehouseLogs,
     clearReportData,
   };
 

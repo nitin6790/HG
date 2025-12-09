@@ -56,7 +56,7 @@ export function ItemProvider({ children }) {
       const existingItem = items.find(
         (item) =>
           item.name.toLowerCase() === trimmedName.toLowerCase() &&
-          item.warehouseId === warehouseId
+          item.warehouse === warehouseId
       );
 
       if (existingItem) {
@@ -119,11 +119,11 @@ export function ItemProvider({ children }) {
   };
 
   const getItemsByWarehouse = (warehouseId) => {
-    return items.filter((item) => item.warehouseId === warehouseId);
+    return items.filter((item) => item.warehouse === warehouseId);
   };
 
   const getItemsByCategory = (categoryId) => {
-    return items.filter((item) => item.categoryId === categoryId);
+    return items.filter((item) => item.category === categoryId);
   };
 
   const getItemById = (id) => {

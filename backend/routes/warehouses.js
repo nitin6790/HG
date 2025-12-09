@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const Warehouse = require("../models/Warehouse");
+const Item = require("../models/Item");
+const StockTransaction = require("../models/StockTransaction");
 
 // Get all warehouses
 router.get("/", async (req, res) => {
@@ -58,14 +60,31 @@ router.put("/:id", async (req, res) => {
   }
 });
 
-// Delete warehouse
+// Delete warehouse (with cascade delete for items and transactions)
 router.delete("/:id", async (req, res) => {
   try {
-    const warehouse = await Warehouse.findByIdAndDelete(req.params.id);
+    const warehouse = await Warehouse.findById(req.params.id);
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-    res.json({ message: "Warehouse deleted" });
+
+    const warehouseId = req.params.id;
+
+    // Step 1: Delete all stock transactions for items in this warehouse
+    const itemsInWarehouse = await Item.find({ warehouse: warehouseId });
+    const itemIds = itemsInWarehouse.map((item) => item._id);
+
+    if (itemIds.length > 0) {
+      await StockTransaction.deleteMany({ item: { $in: itemIds } });
+    }
+
+    // Step 2: Delete all items in this warehouse
+    await Item.deleteMany({ warehouse: warehouseId });
+
+    // Step 3: Delete the warehouse itself
+    await Warehouse.findByIdAndDelete(warehouseId);
+
+    res.json({ message: "Warehouse deleted successfully with all associated items and transactions" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

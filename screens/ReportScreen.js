@@ -266,7 +266,7 @@ export default function ReportScreen({ route }) {
   // Filter items by warehouse if warehouseId is provided
   const filteredItems = useMemo(() => {
     if (warehouseId) {
-      return items.filter((item) => item.warehouseId === warehouseId);
+      return items.filter((item) => item.warehouse === warehouseId);
     }
     return items;
   }, [items, warehouseId]);

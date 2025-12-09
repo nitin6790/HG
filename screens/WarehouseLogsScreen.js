@@ -6,18 +6,17 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ItemContext } from '../src/context/ItemContext';
+import { ReportContext } from '../src/context/ReportContext';
 import { WarehouseContext } from '../src/context/WarehouseContext';
-import { CategoryContext } from '../src/context/CategoryContext';
 import { getMonthOptions, getYearOptions } from '../src/utils/reportUtils';
 import { exportWarehouseLogsToXlsx } from '../src/utils/warehouseLogsExcelUtils';
 
 export default function WarehouseLogsScreen({ route, navigation }) {
-  const { items } = useContext(ItemContext);
+  const { warehouseLogsData, loadWarehouseLogs, reportLoading, reportError } = useContext(ReportContext);
   const { warehouses } = useContext(WarehouseContext);
-  const { categories } = useContext(CategoryContext);
 
   const { warehouseId, warehouseName } = route.params || {};
 
@@ -29,71 +28,63 @@ export default function WarehouseLogsScreen({ route, navigation }) {
   const [stockInLogs, setStockInLogs] = useState([]);
   const [stockOutLogs, setStockOutLogs] = useState([]);
 
-  // Get category name by ID
-  const getCategoryName = (categoryId) => {
-    const cat = categories.find((c) => c._id === categoryId);
-    return cat ? cat.name : 'Unknown';
-  };
-
-  // Filter logs by warehouse and month
+  // Load logs from API
   useEffect(() => {
     if (!warehouseId) return;
+    loadWarehouseLogs(warehouseId);
+  }, [warehouseId, loadWarehouseLogs]);
 
-    const warehouseItems = items.filter((item) => item.warehouseId === warehouseId);
+  // Filter logs by month and year
+  useEffect(() => {
+    if (!warehouseLogsData || warehouseLogsData.length === 0) {
+      setStockInLogs([]);
+      setStockOutLogs([]);
+      return;
+    }
 
-    // Filter Stock In logs - each transaction as a separate entry
-    const inLogs = warehouseItems
-      .flatMap((item) => {
-        if (!item.inDates || item.inDates.length === 0) return [];
-        
-        return item.inDates.map((inDate, index) => {
-          const date = new Date(inDate);
-          return {
-            id: `${item.id}-in-${index}`,
-            itemName: item.name,
-            quantity: item.inQuantities?.[index] || 0,
-            category: getCategoryName(item.categoryId),
-            date: inDate,
-            dateObj: date,
-          };
-        });
-      })
+    const inLogs = warehouseLogsData
+      .filter((log) => log.type === 'stock-in')
       .filter((log) => {
-        const date = log.dateObj;
+        const date = new Date(log.date);
         return (
           date.getFullYear() === selectedYear &&
           date.getMonth() + 1 === selectedMonth
         );
-      });
-
-    // Filter Stock Out logs - each transaction as a separate entry
-    const outLogs = warehouseItems
-      .flatMap((item) => {
-        if (!item.outDates || item.outDates.length === 0) return [];
-        
-        return item.outDates.map((outDate, index) => {
-          const date = new Date(outDate);
-          return {
-            id: `${item.id}-out-${index}`,
-            itemName: item.name,
-            quantity: item.outQuantities?.[index] || 0,
-            category: getCategoryName(item.categoryId),
-            date: outDate,
-            dateObj: date,
-          };
-        });
       })
+      .map((log) => ({
+        id: log._id,
+        itemName: log.itemName,
+        quantity: log.quantity,
+        category: log.itemCategory,
+        date: log.date,
+        notes: log.notes,
+        dateObj: new Date(log.date),
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    const outLogs = warehouseLogsData
+      .filter((log) => log.type === 'stock-out')
       .filter((log) => {
-        const date = log.dateObj;
+        const date = new Date(log.date);
         return (
           date.getFullYear() === selectedYear &&
           date.getMonth() + 1 === selectedMonth
         );
-      });
+      })
+      .map((log) => ({
+        id: log._id,
+        itemName: log.itemName,
+        quantity: log.quantity,
+        category: log.itemCategory,
+        date: log.date,
+        notes: log.notes,
+        dateObj: new Date(log.date),
+      }))
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
 
     setStockInLogs(inLogs);
     setStockOutLogs(outLogs);
-  }, [items, warehouseId, selectedMonth, selectedYear, categories]);
+  }, [warehouseLogsData, selectedMonth, selectedYear]);
 
   // Handle export
   const handleExport = async () => {

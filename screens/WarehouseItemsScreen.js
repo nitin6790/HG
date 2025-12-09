@@ -41,7 +41,7 @@ export default function WarehouseItemsScreen({ route, navigation }) {
       </View>
 
       <Text className="text-sm text-gray-600 mb-1">
-        Category: {getCategoryName(item.categoryId)}
+        Category: {getCategoryName(item.category)}
       </Text>
 
       {item.notes ? (
