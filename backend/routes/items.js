@@ -63,7 +63,8 @@ router.post("/", async (req, res) => {
 
   try {
     const newItem = await item.save();
-    const populatedItem = await newItem
+    // Fetch and populate the saved item
+    const populatedItem = await Item.findById(newItem._id)
       .populate("categoryId")
       .populate("warehouseId");
     res.status(201).json(populatedItem);
@@ -117,7 +118,11 @@ router.post("/:id/stock-in", async (req, res) => {
     item.inQuantities.push(quantity);
 
     const updatedItem = await item.save();
-    res.json(updatedItem);
+    // Fetch and populate the updated item
+    const populatedItem = await Item.findById(updatedItem._id)
+      .populate("categoryId")
+      .populate("warehouseId");
+    res.json(populatedItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -143,7 +148,11 @@ router.post("/:id/stock-out", async (req, res) => {
     item.outQuantities.push(quantity);
 
     const updatedItem = await item.save();
-    res.json(updatedItem);
+    // Fetch and populate the updated item
+    const populatedItem = await Item.findById(updatedItem._id)
+      .populate("categoryId")
+      .populate("warehouseId");
+    res.json(populatedItem);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
