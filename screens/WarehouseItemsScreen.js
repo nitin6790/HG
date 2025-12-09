@@ -1,4 +1,4 @@
-import React, { useContext, useMemo } from 'react';
+import React, { useContext, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,21 @@ import { CategoryContext } from '../src/context/CategoryContext';
 
 export default function WarehouseItemsScreen({ route, navigation }) {
   const { warehouseId } = route.params;
-  const { getItemsByWarehouse } = useContext(ItemContext);
+  const { items, getItemsByWarehouse, loadItemsByWarehouse } = useContext(ItemContext);
   const { warehouses } = useContext(WarehouseContext);
   const { categories } = useContext(CategoryContext);
 
+  // Load items for this warehouse on mount
+  useEffect(() => {
+    if (warehouseId) {
+      loadItemsByWarehouse(warehouseId);
+    }
+  }, [warehouseId, loadItemsByWarehouse]);
+
   const warehouse = warehouses.find((w) => w._id === warehouseId);
   const warehouseItems = useMemo(
-    () => getItemsByWarehouse(warehouseId),
-    [warehouseId, getItemsByWarehouse]
+    () => items,
+    [items]
   );
 
   const getCategoryName = (categoryId) => {

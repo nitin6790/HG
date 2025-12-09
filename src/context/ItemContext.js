@@ -28,6 +28,22 @@ export function ItemProvider({ children }) {
     }
   };
 
+  // Load items filtered by warehouse
+  const loadItemsByWarehouse = async (warehouseId) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await itemAPI.getAll(warehouseId);
+      setItems(Array.isArray(data) ? data : (data.data || []));
+    } catch (err) {
+      console.error('Failed to load items for warehouse:', err);
+      setError(err.message);
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const createItem = async (name, quantity, categoryId, warehouseId, notes = '') => {
     if (!name || !name.trim()) {
       throw new Error('Item name is required');
@@ -179,6 +195,7 @@ export function ItemProvider({ children }) {
         stockOutItem,
         stockInItem,
         loadItems,
+        loadItemsByWarehouse,
       }}
     >
       {children}
