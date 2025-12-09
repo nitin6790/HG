@@ -8,15 +8,13 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ItemContext } from '../src/context/ItemContext';
-import { WarehouseContext } from '../src/context/WarehouseContext';
 
-export default function StockOutScreen({ navigation }) {
+export default function StockOutScreen({ route, navigation }) {
+  const { warehouseId, warehouseName } = route.params || {};
   const { items, stockOutItem } = useContext(ItemContext);
-  const { warehouses } = useContext(WarehouseContext);
   
   const [searchText, setSearchText] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -24,14 +22,12 @@ export default function StockOutScreen({ navigation }) {
   const [stockOutQuantity, setStockOutQuantity] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [selectedWarehouse, setSelectedWarehouse] = useState(null);
-  const [showWarehouseDropdown, setShowWarehouseDropdown] = useState(false);
 
   // Filter items by warehouse
   const warehouseItems = useMemo(() => {
-    if (!selectedWarehouse) return items;
-    return items.filter((item) => item.warehouse === selectedWarehouse._id);
-  }, [items, selectedWarehouse]);
+    if (!warehouseId) return items;
+    return items.filter((item) => item.warehouse === warehouseId);
+  }, [items, warehouseId]);
 
   // Filter items based on search text (unique names only)
   const uniqueItemNames = useMemo(() => {
@@ -50,8 +46,8 @@ export default function StockOutScreen({ navigation }) {
   const validateStockOut = () => {
     setErrorMessage('');
 
-    if (!selectedWarehouse) {
-      setErrorMessage('Please select a warehouse');
+    if (!warehouseId) {
+      setErrorMessage('No warehouse selected. Navigate from a warehouse to stock out.');
       return false;
     }
 
@@ -119,83 +115,14 @@ export default function StockOutScreen({ navigation }) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1"
       >
-        {/* Warehouse Selector */}
-        <View className="px-6 pt-6 pb-4 bg-gray-50 border-b border-gray-200">
-          <Text className="text-lg font-semibold text-gray-900 mb-2">
-            Select Warehouse *
+        {/* Warehouse Info - Read Only */}
+        <View className="px-6 pt-6 pb-4 bg-blue-50 border-b border-blue-200">
+          <Text className="text-sm font-semibold text-blue-900 mb-1">
+            Warehouse
           </Text>
-          <View style={{ zIndex: 2000, elevation: 2000 }}>
-            <TouchableOpacity
-              onPress={() => setShowWarehouseDropdown(!showWarehouseDropdown)}
-              className="bg-white border border-gray-300 rounded-lg px-4 py-3 flex-row justify-between items-center"
-              disabled={isSubmitting}
-            >
-              <Text className="text-base text-gray-900 font-medium">
-                {selectedWarehouse ? selectedWarehouse.name : 'Choose warehouse...'}
-              </Text>
-              <Text className="text-xl text-gray-400">
-                {showWarehouseDropdown ? '▲' : '▼'}
-              </Text>
-            </TouchableOpacity>
-
-            {/* Warehouse Dropdown */}
-            {showWarehouseDropdown && (
-              <View
-                style={{
-                  position: 'absolute',
-                  top: 56,
-                  left: 0,
-                  right: 0,
-                  backgroundColor: 'white',
-                  borderWidth: 1,
-                  borderColor: '#d1d5db',
-                  borderRadius: 8,
-                  maxHeight: 250,
-                  zIndex: 9999,
-                  elevation: 9999,
-                  overflow: 'hidden',
-                }}
-                pointerEvents="box-none"
-              >
-                <View pointerEvents="auto">
-                  {warehouses.length === 0 ? (
-                    <View className="p-4">
-                      <Text className="text-gray-500 text-center">
-                        No warehouses available
-                      </Text>
-                    </View>
-                  ) : (
-                    <FlatList
-                      data={warehouses}
-                      keyExtractor={(w) => w._id}
-                      renderItem={({ item: warehouse }) => (
-                        <TouchableOpacity
-                          onPress={() => {
-                            setSelectedWarehouse(warehouse);
-                            setShowWarehouseDropdown(false);
-                            setSearchText('');
-                            setSelectedItem(null);
-                          }}
-                          className="bg-white px-4 py-3 border-b border-gray-200"
-                          pointerEvents="auto"
-                        >
-                          <Text className="text-gray-900 font-medium">
-                            {warehouse.name}
-                          </Text>
-                          {warehouse.location && (
-                            <Text className="text-sm text-gray-500">
-                              {warehouse.location}
-                            </Text>
-                          )}
-                        </TouchableOpacity>
-                      )}
-                      scrollEnabled={warehouses.length > 4}
-                    />
-                  )}
-                </View>
-              </View>
-            )}
-          </View>
+          <Text className="text-lg font-bold text-blue-900">
+            {warehouseName || 'No Warehouse Selected'}
+          </Text>
         </View>
 
         {/* Item Search Input - OUTSIDE ScrollView so dropdown renders on top */}

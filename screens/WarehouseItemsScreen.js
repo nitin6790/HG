@@ -94,7 +94,10 @@ export default function WarehouseItemsScreen({ route, navigation }) {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          onPress={() => navigation.navigate('StockOut')}
+          onPress={() => navigation.navigate('StockOut', {
+            warehouseId: warehouse._id,
+            warehouseName: warehouse.name,
+          })}
           className="flex-1 bg-red-600 rounded-lg py-3"
         >
           <Text className="text-white font-semibold text-center">
@@ -105,7 +108,7 @@ export default function WarehouseItemsScreen({ route, navigation }) {
 
       <TouchableOpacity
         onPress={() => navigation.navigate('Reports', {
-          warehouseId: warehouse.id,
+          warehouseId: warehouse._id,
           warehouseName: warehouse.name,
         })}
         className="bg-blue-600 rounded-lg py-3 mb-6"

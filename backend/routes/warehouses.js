@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const mongoose = require("mongoose");
 const Warehouse = require("../models/Warehouse");
 const Item = require("../models/Item");
 const StockTransaction = require("../models/StockTransaction");
@@ -63,12 +64,18 @@ router.put("/:id", async (req, res) => {
 // Delete warehouse (with cascade delete for items and transactions)
 router.delete("/:id", async (req, res) => {
   try {
-    const warehouse = await Warehouse.findById(req.params.id);
+    const warehouseId = req.params.id;
+    console.log("Deleting warehouse:", warehouseId);
+    
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(warehouseId)) {
+      return res.status(400).json({ message: "Invalid warehouse ID format" });
+    }
+
+    const warehouse = await Warehouse.findById(warehouseId);
     if (!warehouse) {
       return res.status(404).json({ message: "Warehouse not found" });
     }
-
-    const warehouseId = req.params.id;
 
     // Step 1: Delete all stock transactions for items in this warehouse
     const itemsInWarehouse = await Item.find({ warehouse: warehouseId });

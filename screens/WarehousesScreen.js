@@ -51,7 +51,7 @@ export default function WarehousesScreen({ navigation }) {
           </Text>
         </View>
         <TouchableOpacity
-          onPress={() => handleDelete(item.id, item.name)}
+          onPress={() => handleDelete(item._id, item.name)}
           className="bg-red-50 rounded px-3 py-2"
         >
           <Text className="text-red-600 font-semibold text-sm">Delete</Text>
@@ -104,7 +104,7 @@ export default function WarehousesScreen({ navigation }) {
             <FlatList
               data={warehouses}
               renderItem={renderWarehouseItem}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(item) => item._id}
               scrollEnabled={false}
             />
           )}
